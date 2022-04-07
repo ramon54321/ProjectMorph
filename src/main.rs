@@ -1,5 +1,5 @@
-use pancurses::{endwin, initscr, noecho, Input, Window};
 use draw::Writer;
+use pancurses::{endwin, initscr, noecho, Input, Window};
 
 mod draw;
 
@@ -9,10 +9,7 @@ struct Cursor {
 }
 impl Cursor {
     fn new() -> Cursor {
-        Cursor {
-            x: 0,
-            y: 0,
-        }
+        Cursor { x: 0, y: 0 }
     }
     fn set_position(&mut self, x: i32, y: i32) {
         self.x = x;
@@ -24,56 +21,106 @@ impl Cursor {
     }
 }
 
+struct Buffer {
+    contents: Vec<Vec<char>>,
+}
+impl Loadable<Buffer> for Buffer {
+    fn load() -> Buffer {
+        let contents: Vec<Vec<char>> = "Hello from the buffer!\n\nThis is on the third line."
+            .split('\n')
+            .map(|line| line.chars().collect())
+            .collect();
+        Buffer { contents }
+    }
+}
+
+trait Loadable<T> {
+    fn load() -> T;
+}
+
+struct BufferController {
+    buffer: Buffer,
+}
+impl BufferController {
+    fn new(buffer: Buffer) -> BufferController {
+        BufferController { buffer }
+    }
+    fn putch(&mut self, ch: char, line_number: u16, column: u16) {
+        if let Some(line) = self.buffer.contents.get_mut(line_number as usize) {
+            let insert_index = std::cmp::min(line.len(), column as usize);
+            line.insert(insert_index, ch);
+        }
+    }
+    fn refresh(&self, window: &Window) {
+        let writer = Writer::new(&window);
+        let mut x;
+        let mut y = 0;
+        for line in self.buffer.contents.iter() {
+            x = 0;
+            for ch in line {
+                writer.putch(ch.clone(), x, y);
+                x = x + 1;
+            }
+            y = y + 1;
+        }
+    }
+}
+
+#[derive(Eq, PartialEq)]
+enum Mode {
+    NORMAL,
+    INSERT,
+}
+
 fn main() {
     let window = setup_window();
     let mut cursor = Cursor::new();
+    let buffer = Buffer::load();
+    let mut buffer_controller = BufferController::new(buffer);
 
-    let buffer = "Hello, world!\n\nThis is a new line...\n".chars();
+    buffer_controller.refresh(&window);
 
-    {
-        let writer = Writer::new(&window);
-        let mut x = 0;
-        let mut y = 0;
-        for ch in buffer {
-            if ch == '\n' {
-                x = 0;
-                y = y + 1;
-                continue;
-            }
-            writer.putch(ch, x, y);
-            x = x + 1;
-        }
-    }
-
-    //set_state()
-    //  draw_editor()
-    //  
-    //loop
-    //  wait_for_input()
-    //  set_state()
-
+    let mut mode = Mode::NORMAL;
     loop {
         let input = window.getch();
 
-        match input {
-            Some(Input::Character('q')) => { break; },
-            Some(Input::Character('h')) => {
-                cursor.set_delta(-1, 0);
-                window.mv(cursor.y, cursor.x);
-            },
-            Some(Input::Character('l')) => {
-                cursor.set_delta(1, 0);
-                window.mv(cursor.y, cursor.x);
-            },
-            Some(Input::Character('k')) => {
-                cursor.set_delta(0, -1);
-                window.mv(cursor.y, cursor.x);
-            },
-            Some(Input::Character('j')) => {
-                cursor.set_delta(0, 1);
-                window.mv(cursor.y, cursor.x);
-            },
-            _ => ()
+        if mode == Mode::NORMAL {
+            match input {
+                Some(Input::Character('q')) => {
+                    break;
+                }
+                Some(Input::Character('i')) => {
+                    mode = Mode::INSERT;
+                }
+                Some(Input::Character('h')) => {
+                    cursor.set_delta(-1, 0);
+                    window.mv(cursor.y, cursor.x);
+                }
+                Some(Input::Character('l')) => {
+                    cursor.set_delta(1, 0);
+                    window.mv(cursor.y, cursor.x);
+                }
+                Some(Input::Character('k')) => {
+                    cursor.set_delta(0, -1);
+                    window.mv(cursor.y, cursor.x);
+                }
+                Some(Input::Character('j')) => {
+                    cursor.set_delta(0, 1);
+                    window.mv(cursor.y, cursor.x);
+                }
+                _ => ()
+            }
+        } else if mode == Mode::INSERT {
+            match input {
+                Some(Input::Character('`')) => {
+                    mode = Mode::NORMAL;
+                }
+                Some(Input::Character(ch)) => {
+                    buffer_controller.putch(ch, cursor.y as u16, cursor.x as u16);
+                    buffer_controller.refresh(&window);
+                }
+                _ => ()
+            }
         }
     }
 

@@ -19,7 +19,6 @@ impl<'a> Writer<'a> {
 }
 impl<'a> Drop for Writer<'a> {
     fn drop(&mut self) {
-        println!("Calling drop");
         self.window.mv(self.start_y, self.start_x);
     }
 }
