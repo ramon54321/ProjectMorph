@@ -15,6 +15,12 @@ impl Cursor {
         self.x = x;
         self.y = y;
     }
+    fn set_x(&mut self, x: i32) {
+        self.x = x;
+    }
+    fn set_y(&mut self, y: i32) {
+        self.y = y;
+    }
     fn set_delta(&mut self, x: i32, y: i32) {
         self.x = self.x + x;
         self.y = self.y + y;
@@ -45,10 +51,24 @@ impl BufferController {
     fn new(buffer: Buffer) -> BufferController {
         BufferController { buffer }
     }
+    fn get_line_length(&self, line_number: usize) -> u16 {
+        match self.buffer.contents.get(line_number) {
+            Some(line) => line.len() as u16,
+            _ => 0
+        }
+    }
+    fn get_line_count(&self) -> u16 {
+        self.buffer.contents.len() as u16
+    }
     fn putch(&mut self, ch: char, line_number: u16, column: u16) {
         if let Some(line) = self.buffer.contents.get_mut(line_number as usize) {
             let insert_index = std::cmp::min(line.len(), column as usize);
             line.insert(insert_index, ch);
+        } else {
+            let mut line: Vec<char> = Vec::new();
+            let insert_index = std::cmp::min(line.len(), column as usize);
+            line.insert(insert_index, ch);
+            self.buffer.contents.insert(line_number as usize, line); 
         }
     }
     fn refresh_all(&self, window: &Window) {
@@ -65,17 +85,6 @@ impl BufferController {
                 x = x + 1;
             }
         }
-
-        //let mut x;
-        //let mut y = 0;
-        //for line in self.buffer.contents.iter() {
-        //    x = 0;
-        //    for ch in line {
-        //        writer.putch(ch.clone(), x, y);
-        //        x = x + 1;
-        //    }
-        //    y = y + 1;
-        //}
     }
 }
 
@@ -106,19 +115,36 @@ fn main() {
                     mode = Mode::INSERT;
                 }
                 Some(Input::Character('h')) => {
+                    if cursor.x <= 0 { continue; }
                     cursor.set_delta(-1, 0);
                     window.mv(cursor.y, cursor.x);
                 }
                 Some(Input::Character('l')) => {
+                    let line_length = buffer_controller.get_line_length(cursor.y as usize);
+                    if cursor.x as u16 >= line_length { continue; }
                     cursor.set_delta(1, 0);
                     window.mv(cursor.y, cursor.x);
                 }
                 Some(Input::Character('k')) => {
+                    if cursor.y <= 0 { continue; }
                     cursor.set_delta(0, -1);
+                    let line_length = buffer_controller.get_line_length(cursor.y as usize);
+                    if cursor.x as u16 > line_length {
+                        cursor.set_x(line_length as i32);
+                    } else if cursor.x as u16 <= 0 {
+                        cursor.set_x(0);
+                    }
                     window.mv(cursor.y, cursor.x);
                 }
                 Some(Input::Character('j')) => {
+                    if cursor.y as u16 >= buffer_controller.get_line_count() { continue; }
                     cursor.set_delta(0, 1);
+                    let line_length = buffer_controller.get_line_length(cursor.y as usize);
+                    if cursor.x as u16 > line_length {
+                        cursor.set_x(line_length as i32);
+                    } else if cursor.x as u16 <= 0 {
+                        cursor.set_x(0);
+                    }
                     window.mv(cursor.y, cursor.x);
                 }
                 _ => ()
