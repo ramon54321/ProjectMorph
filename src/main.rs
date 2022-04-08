@@ -51,18 +51,31 @@ impl BufferController {
             line.insert(insert_index, ch);
         }
     }
-    fn refresh(&self, window: &Window) {
+    fn refresh_all(&self, window: &Window) {
+        for line_number in 0..self.buffer.contents.len() {
+            self.refresh(window, line_number as usize);
+        }
+    }
+    fn refresh(&self, window: &Window, line_number: usize) {
         let writer = Writer::new(&window);
-        let mut x;
-        let mut y = 0;
-        for line in self.buffer.contents.iter() {
-            x = 0;
+        if let Some(line) = self.buffer.contents.get(line_number) {
+            let mut x = 0;
             for ch in line {
-                writer.putch(ch.clone(), x, y);
+                writer.putch(ch.clone(), x, line_number as u16);
                 x = x + 1;
             }
-            y = y + 1;
         }
+
+        //let mut x;
+        //let mut y = 0;
+        //for line in self.buffer.contents.iter() {
+        //    x = 0;
+        //    for ch in line {
+        //        writer.putch(ch.clone(), x, y);
+        //        x = x + 1;
+        //    }
+        //    y = y + 1;
+        //}
     }
 }
 
@@ -78,7 +91,7 @@ fn main() {
     let buffer = Buffer::load();
     let mut buffer_controller = BufferController::new(buffer);
 
-    buffer_controller.refresh(&window);
+    buffer_controller.refresh_all(&window);
 
     let mut mode = Mode::NORMAL;
     loop {
@@ -117,7 +130,9 @@ fn main() {
                 }
                 Some(Input::Character(ch)) => {
                     buffer_controller.putch(ch, cursor.y as u16, cursor.x as u16);
-                    buffer_controller.refresh(&window);
+                    buffer_controller.refresh(&window, cursor.y as usize);
+                    cursor.set_delta(1, 0);
+                    window.mv(cursor.y, cursor.x);
                 }
                 _ => ()
             }
