@@ -54,7 +54,7 @@ impl BufferController {
     fn get_line_length(&self, line_number: usize) -> u16 {
         match self.buffer.contents.get(line_number) {
             Some(line) => line.len() as u16,
-            _ => 0
+            _ => 0,
         }
     }
     fn get_line_count(&self) -> u16 {
@@ -68,7 +68,7 @@ impl BufferController {
             let mut line: Vec<char> = Vec::new();
             let insert_index = std::cmp::min(line.len(), column as usize);
             line.insert(insert_index, ch);
-            self.buffer.contents.insert(line_number as usize, line); 
+            self.buffer.contents.insert(line_number as usize, line);
         }
     }
     fn refresh_all(&self, window: &Window) {
@@ -94,6 +94,51 @@ enum Mode {
     INSERT,
 }
 
+fn cursor_move_up(window: &Window, cursor: &mut Cursor, buffer_controller: &BufferController) {
+    if cursor.y <= 0 {
+        return;
+    }
+    cursor.set_delta(0, -1);
+    let line_length = buffer_controller.get_line_length(cursor.y as usize);
+    if cursor.x as u16 > line_length {
+        cursor.set_x(line_length as i32);
+    } else if cursor.x as u16 <= 0 {
+        cursor.set_x(0);
+    }
+    window.mv(cursor.y, cursor.x);
+}
+
+fn cursor_move_down(window: &Window, cursor: &mut Cursor, buffer_controller: &BufferController) {
+    if cursor.y as u16 >= buffer_controller.get_line_count() {
+        return;
+    }
+    cursor.set_delta(0, 1);
+    let line_length = buffer_controller.get_line_length(cursor.y as usize);
+    if cursor.x as u16 > line_length {
+        cursor.set_x(line_length as i32);
+    } else if cursor.x as u16 <= 0 {
+        cursor.set_x(0);
+    }
+    window.mv(cursor.y, cursor.x);
+}
+
+fn cursor_move_left(window: &Window, cursor: &mut Cursor, buffer_controller: &BufferController) {
+    if cursor.x <= 0 {
+        return;
+    }
+    cursor.set_delta(-1, 0);
+    window.mv(cursor.y, cursor.x);
+}
+
+fn cursor_move_right(window: &Window, cursor: &mut Cursor, buffer_controller: &BufferController) {
+    let line_length = buffer_controller.get_line_length(cursor.y as usize);
+    if cursor.x as u16 >= line_length {
+        return;
+    }
+    cursor.set_delta(1, 0);
+    window.mv(cursor.y, cursor.x);
+}
+
 fn main() {
     let window = setup_window();
     let mut cursor = Cursor::new();
@@ -115,39 +160,18 @@ fn main() {
                     mode = Mode::INSERT;
                 }
                 Some(Input::Character('h')) => {
-                    if cursor.x <= 0 { continue; }
-                    cursor.set_delta(-1, 0);
-                    window.mv(cursor.y, cursor.x);
+                    cursor_move_left(&window, &mut cursor, &buffer_controller);
                 }
                 Some(Input::Character('l')) => {
-                    let line_length = buffer_controller.get_line_length(cursor.y as usize);
-                    if cursor.x as u16 >= line_length { continue; }
-                    cursor.set_delta(1, 0);
-                    window.mv(cursor.y, cursor.x);
+                    cursor_move_right(&window, &mut cursor, &buffer_controller);
                 }
                 Some(Input::Character('k')) => {
-                    if cursor.y <= 0 { continue; }
-                    cursor.set_delta(0, -1);
-                    let line_length = buffer_controller.get_line_length(cursor.y as usize);
-                    if cursor.x as u16 > line_length {
-                        cursor.set_x(line_length as i32);
-                    } else if cursor.x as u16 <= 0 {
-                        cursor.set_x(0);
-                    }
-                    window.mv(cursor.y, cursor.x);
+                    cursor_move_up(&window, &mut cursor, &buffer_controller);
                 }
                 Some(Input::Character('j')) => {
-                    if cursor.y as u16 >= buffer_controller.get_line_count() { continue; }
-                    cursor.set_delta(0, 1);
-                    let line_length = buffer_controller.get_line_length(cursor.y as usize);
-                    if cursor.x as u16 > line_length {
-                        cursor.set_x(line_length as i32);
-                    } else if cursor.x as u16 <= 0 {
-                        cursor.set_x(0);
-                    }
-                    window.mv(cursor.y, cursor.x);
+                    cursor_move_down(&window, &mut cursor, &buffer_controller);
                 }
-                _ => ()
+                _ => (),
             }
         } else if mode == Mode::INSERT {
             match input {
@@ -160,7 +184,7 @@ fn main() {
                     cursor.set_delta(1, 0);
                     window.mv(cursor.y, cursor.x);
                 }
-                _ => ()
+                _ => (),
             }
         }
     }
