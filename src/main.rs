@@ -1,91 +1,16 @@
 use draw::Writer;
+use cursor::Cursor;
+use buffer::Buffer;
+use buffer_controller::BufferController;
 use pancurses::{endwin, initscr, noecho, Input, Window};
 
 mod draw;
+mod cursor;
+mod buffer;
+mod buffer_controller;
 
-struct Cursor {
-    x: i32,
-    y: i32,
-}
-impl Cursor {
-    fn new() -> Cursor {
-        Cursor { x: 0, y: 0 }
-    }
-    fn set_position(&mut self, x: i32, y: i32) {
-        self.x = x;
-        self.y = y;
-    }
-    fn set_x(&mut self, x: i32) {
-        self.x = x;
-    }
-    fn set_y(&mut self, y: i32) {
-        self.y = y;
-    }
-    fn set_delta(&mut self, x: i32, y: i32) {
-        self.x = self.x + x;
-        self.y = self.y + y;
-    }
-}
-
-struct Buffer {
-    contents: Vec<Vec<char>>,
-}
-impl Loadable<Buffer> for Buffer {
-    fn load() -> Buffer {
-        let contents: Vec<Vec<char>> = "Hello from the buffer!\n\nThis is on the third line."
-            .split('\n')
-            .map(|line| line.chars().collect())
-            .collect();
-        Buffer { contents }
-    }
-}
-
-trait Loadable<T> {
+pub trait Loadable<T> {
     fn load() -> T;
-}
-
-struct BufferController {
-    buffer: Buffer,
-}
-impl BufferController {
-    fn new(buffer: Buffer) -> BufferController {
-        BufferController { buffer }
-    }
-    fn get_line_length(&self, line_number: usize) -> u16 {
-        match self.buffer.contents.get(line_number) {
-            Some(line) => line.len() as u16,
-            _ => 0,
-        }
-    }
-    fn get_line_count(&self) -> u16 {
-        self.buffer.contents.len() as u16
-    }
-    fn putch(&mut self, ch: char, line_number: u16, column: u16) {
-        if let Some(line) = self.buffer.contents.get_mut(line_number as usize) {
-            let insert_index = std::cmp::min(line.len(), column as usize);
-            line.insert(insert_index, ch);
-        } else {
-            let mut line: Vec<char> = Vec::new();
-            let insert_index = std::cmp::min(line.len(), column as usize);
-            line.insert(insert_index, ch);
-            self.buffer.contents.insert(line_number as usize, line);
-        }
-    }
-    fn refresh_all(&self, window: &Window) {
-        for line_number in 0..self.buffer.contents.len() {
-            self.refresh(window, line_number as usize);
-        }
-    }
-    fn refresh(&self, window: &Window, line_number: usize) {
-        let writer = Writer::new(&window);
-        if let Some(line) = self.buffer.contents.get(line_number) {
-            let mut x = 0;
-            for ch in line {
-                writer.putch(ch.clone(), x, line_number as u16);
-                x = x + 1;
-            }
-        }
-    }
 }
 
 #[derive(Eq, PartialEq)]
@@ -122,7 +47,7 @@ fn cursor_move_down(window: &Window, cursor: &mut Cursor, buffer_controller: &Bu
     window.mv(cursor.y, cursor.x);
 }
 
-fn cursor_move_left(window: &Window, cursor: &mut Cursor, buffer_controller: &BufferController) {
+fn cursor_move_left(window: &Window, cursor: &mut Cursor) {
     if cursor.x <= 0 {
         return;
     }
@@ -160,7 +85,7 @@ fn main() {
                     mode = Mode::INSERT;
                 }
                 Some(Input::Character('h')) => {
-                    cursor_move_left(&window, &mut cursor, &buffer_controller);
+                    cursor_move_left(&window, &mut cursor);
                 }
                 Some(Input::Character('l')) => {
                     cursor_move_right(&window, &mut cursor, &buffer_controller);
