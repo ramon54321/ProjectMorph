@@ -1,13 +1,15 @@
-use draw::Writer;
-use cursor::Cursor;
+use std::collections::HashMap;
+
 use buffer::Buffer;
 use buffer_controller::BufferController;
+use cursor::Cursor;
+use draw::Writer;
 use pancurses::{endwin, initscr, noecho, Input, Window};
 
-mod draw;
-mod cursor;
 mod buffer;
 mod buffer_controller;
+mod cursor;
+mod draw;
 
 pub trait Loadable<T> {
     fn load() -> T;
@@ -64,6 +66,28 @@ fn cursor_move_right(window: &Window, cursor: &mut Cursor, buffer_controller: &B
     window.mv(cursor.y, cursor.x);
 }
 
+#[derive(Eq, Hash, PartialEq)]
+enum ActionTag {
+    CursorMoveLeft,
+    CursorMoveRight,
+    CursorMoveDown,
+    CursorMoveUp,
+}
+
+fn call_action(
+    action_tag: ActionTag,
+    window: &Window,
+    cursor: &mut Cursor,
+    buffer_controller: &BufferController,
+) {
+    match action_tag {
+        ActionTag::CursorMoveLeft => cursor_move_left(window, cursor),
+        ActionTag::CursorMoveRight => cursor_move_right(window, cursor, buffer_controller),
+        ActionTag::CursorMoveDown => cursor_move_down(window, cursor, buffer_controller),
+        ActionTag::CursorMoveUp => cursor_move_up(window, cursor, buffer_controller),
+    }
+}
+
 fn main() {
     let window = setup_window();
     let mut cursor = Cursor::new();
@@ -78,31 +102,17 @@ fn main() {
 
         if mode == Mode::NORMAL {
             match input {
-                Some(Input::Character('q')) => {
-                    break;
-                }
-                Some(Input::Character('i')) => {
-                    mode = Mode::INSERT;
-                }
-                Some(Input::Character('h')) => {
-                    cursor_move_left(&window, &mut cursor);
-                }
-                Some(Input::Character('l')) => {
-                    cursor_move_right(&window, &mut cursor, &buffer_controller);
-                }
-                Some(Input::Character('k')) => {
-                    cursor_move_up(&window, &mut cursor, &buffer_controller);
-                }
-                Some(Input::Character('j')) => {
-                    cursor_move_down(&window, &mut cursor, &buffer_controller);
-                }
+                Some(Input::Character('q')) => break, 
+                Some(Input::Character('i')) => mode = Mode::INSERT,
+                Some(Input::Character('h')) => call_action(ActionTag::CursorMoveLeft, &window, &mut cursor, &buffer_controller),
+                Some(Input::Character('l')) => call_action(ActionTag::CursorMoveRight, &window, &mut cursor, &buffer_controller),
+                Some(Input::Character('k')) => call_action(ActionTag::CursorMoveUp, &window, &mut cursor, &buffer_controller),
+                Some(Input::Character('j')) => call_action(ActionTag::CursorMoveDown, &window, &mut cursor, &buffer_controller),
                 _ => (),
             }
         } else if mode == Mode::INSERT {
             match input {
-                Some(Input::Character('`')) => {
-                    mode = Mode::NORMAL;
-                }
+                Some(Input::Character('`')) => mode = Mode::NORMAL,
                 Some(Input::Character(ch)) => {
                     buffer_controller.putch(ch, cursor.y as u16, cursor.x as u16);
                     buffer_controller.refresh(&window, cursor.y as usize);
