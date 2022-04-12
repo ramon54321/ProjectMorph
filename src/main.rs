@@ -21,12 +21,11 @@ enum Mode {
     INSERT,
 }
 
-
 fn main() {
     let window = setup_window();
-    let mut cursor = Cursor::new();
     let buffer = Buffer::load();
     let mut buffer_controller = BufferController::new(buffer);
+    let mut cursor = Cursor::new();
 
     buffer_controller.refresh_all(&window);
 
