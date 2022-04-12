@@ -1,5 +1,5 @@
+use crate::{Buffer, Cursor};
 use pancurses::Window;
-use crate::{Cursor, Buffer};
 
 fn cursor_move_up(window: &Window, cursor: &mut Cursor, buffer: &Buffer) {
     if cursor.y <= 0 {
@@ -54,12 +54,7 @@ pub enum ActionTag {
     CursorMoveUp,
 }
 
-pub fn call_action(
-    action_tag: ActionTag,
-    window: &Window,
-    cursor: &mut Cursor,
-    buffer: &Buffer,
-) {
+pub fn call_action(action_tag: ActionTag, window: &Window, cursor: &mut Cursor, buffer: &Buffer) {
     match action_tag {
         ActionTag::CursorMoveLeft => cursor_move_left(window, cursor),
         ActionTag::CursorMoveRight => cursor_move_right(window, cursor, buffer),
