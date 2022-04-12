@@ -7,26 +7,26 @@ fn cursor_move_up(window: &Window, cursor: &mut Cursor, buffer: &Buffer) {
     }
     cursor.set_delta(0, -1);
     let line_length = buffer.get_line_length(cursor.y as usize);
-    if cursor.x as u16 > line_length {
-        cursor.set_x(line_length as i32);
-    } else if cursor.x as u16 <= 0 {
+    if cursor.x > line_length as isize {
+        cursor.set_x(line_length as isize);
+    } else if cursor.x <= 0 {
         cursor.set_x(0);
     }
-    window.mv(cursor.y, cursor.x);
+    window.mv(cursor.y as i32, cursor.x as i32);
 }
 
 fn cursor_move_down(window: &Window, cursor: &mut Cursor, buffer: &Buffer) {
-    if cursor.y as u16 >= buffer.get_line_count() {
+    if cursor.y >= buffer.get_line_count() as isize {
         return;
     }
     cursor.set_delta(0, 1);
     let line_length = buffer.get_line_length(cursor.y as usize);
-    if cursor.x as u16 > line_length {
-        cursor.set_x(line_length as i32);
+    if cursor.x > line_length as isize {
+        cursor.set_x(line_length as isize);
     } else if cursor.x as u16 <= 0 {
         cursor.set_x(0);
     }
-    window.mv(cursor.y, cursor.x);
+    window.mv(cursor.y as i32, cursor.x as i32);
 }
 
 fn cursor_move_left(window: &Window, cursor: &mut Cursor) {
@@ -34,16 +34,16 @@ fn cursor_move_left(window: &Window, cursor: &mut Cursor) {
         return;
     }
     cursor.set_delta(-1, 0);
-    window.mv(cursor.y, cursor.x);
+    window.mv(cursor.y as i32, cursor.x as i32);
 }
 
 fn cursor_move_right(window: &Window, cursor: &mut Cursor, buffer: &Buffer) {
     let line_length = buffer.get_line_length(cursor.y as usize);
-    if cursor.x as u16 >= line_length {
+    if cursor.x >= line_length as isize {
         return;
     }
     cursor.set_delta(1, 0);
-    window.mv(cursor.y, cursor.x);
+    window.mv(cursor.y as i32, cursor.x as i32);
 }
 
 #[derive(Eq, Hash, PartialEq)]

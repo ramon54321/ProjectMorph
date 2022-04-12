@@ -13,7 +13,7 @@ impl<'a> Writer<'a> {
             start_y: window.get_cur_y(),
         }
     }
-    pub fn putch(&self, ch: char, x: u16, y: u16) {
+    pub fn putch(&self, ch: char, x: usize, y: usize) {
         self.window.mvaddch(y as i32, x as i32, ch);
     }
 }

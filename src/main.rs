@@ -24,7 +24,7 @@ fn refresh(window: &Window, buffer: &Buffer, line_number: usize) {
     if let Some(line) = buffer.contents.get(line_number) {
         let mut x = 0;
         for ch in line {
-            writer.putch(ch.clone(), x, line_number as u16);
+            writer.putch(ch.clone(), x, line_number);
             x = x + 1;
         }
     }
@@ -65,10 +65,10 @@ fn main() {
             match input {
                 Some(Input::Character('`')) => mode = Mode::NORMAL,
                 Some(Input::Character(ch)) => {
-                    buffer.putch(ch, cursor.y as u16, cursor.x as u16);
+                    buffer.putch(ch, cursor.y as usize, cursor.x as usize);
                     refresh(&window, &buffer, cursor.y as usize);
                     cursor.set_delta(1, 0);
-                    window.mv(cursor.y, cursor.x);
+                    window.mv(cursor.y as i32, cursor.x as i32);
                 }
                 _ => (),
             }

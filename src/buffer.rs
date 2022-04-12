@@ -4,25 +4,25 @@ pub struct Buffer {
     pub contents: Vec<Vec<char>>,
 }
 impl Buffer {
-    pub fn putch(&mut self, ch: char, line_number: u16, column: u16) {
-        if let Some(line) = self.contents.get_mut(line_number as usize) {
-            let insert_index = std::cmp::min(line.len(), column as usize);
+    pub fn putch(&mut self, ch: char, line_number: usize, column: usize) {
+        if let Some(line) = self.contents.get_mut(line_number) {
+            let insert_index = std::cmp::min(line.len(), column);
             line.insert(insert_index, ch);
         } else {
             let mut line: Vec<char> = Vec::new();
-            let insert_index = std::cmp::min(line.len(), column as usize);
+            let insert_index = std::cmp::min(line.len(), column);
             line.insert(insert_index, ch);
-            self.contents.insert(line_number as usize, line);
+            self.contents.insert(line_number, line);
         }
     }
-    pub fn get_line_length(&self, line_number: usize) -> u16 {
+    pub fn get_line_length(&self, line_number: usize) -> usize {
         match self.contents.get(line_number) {
-            Some(line) => line.len() as u16,
+            Some(line) => line.len(),
             _ => 0,
         }
     }
-    pub fn get_line_count(&self) -> u16 {
-        self.contents.len() as u16
+    pub fn get_line_count(&self) -> usize {
+        self.contents.len()
     }
 }
 impl Loadable<Buffer> for Buffer {
